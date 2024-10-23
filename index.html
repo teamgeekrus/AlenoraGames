@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suggestions</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            margin-top: 2rem;
+            position: relative;
+        }
+
+        .form-step {
+            display: none;
+        }
+
+        .form-step.active {
+            display: block;
+        }
+
+        h1 {
+            color: #5865F2;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4a4a4a;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 2px solid #e1e1e1;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        button {
+            background: #5865F2;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #4752C4;
+        }
+
+        .success-message {
+            text-align: center;
+            color: #43B581;
+            margin-top: 1rem;
+        }
+
+        .error-message {
+            color: #ED4245;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .logout-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #ED4245;
+            padding: 0.5rem 1rem;
+            width: auto;
+            font-size: 0.9rem;
+        }
+
+        .logout-button:hover {
+            background: #c53337;
+        }
+
+        .welcome-user {
+            text-align: center;
+            color: #4a4a4a;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-step active" id="step1">
+            <h1>Bienvenue</h1>
+            <label for="discordUsername">Pseudo Discord</label>
+            <input type="text" id="discordUsername" placeholder="Exemple: team_geek_official" required>
+            <button onclick="validateUsername()">Continuer</button>
+            <div class="error-message" id="usernameError"></div>
+        </div>
+
+        <div class="form-step" id="step2">
+            <button onclick="logout()" class="logout-button">Déconnexion</button>
+            <h1>Suggestion</h1>
+            <div class="welcome-user" id="welcomeMessage"></div>
+            <label for="suggestion">Votre suggestion</label>
+            <textarea id="suggestion" placeholder="Décrivez votre suggestion ici..." required></textarea>
+            <button onclick="submitSuggestion()">Envoyer</button>
+            <div class="success-message" id="successMessage"></div>
+            <div class="error-message" id="suggestionError"></div>
+        </div>
+    </div>
+
+    <script>
+        // Vérifier si l'utilisateur est déjà connecté au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedUsername = localStorage.getItem('discordUsername');
+            if (savedUsername) {
+                document.getElementById('discordUsername').value = savedUsername;
+                showSuggestionForm(savedUsername);
+            }
+        });
+
+        function generateId() {
+            const existingId = localStorage.getItem('userId');
+            if (existingId) {
+                return existingId;
+            }
+            const parts = [];
+            for (let i = 0; i < 4; i++) {
+                parts.push(Math.floor(Math.random() * 10000).toString().padStart(4, '0'));
+            }
+            const newId = parts.join('-');
+            localStorage.setItem('userId', newId);
+            return newId;
+        }
+
+        function validateUsername() {
+            const username = document.getElementById('discordUsername').value.trim();
+            const error = document.getElementById('usernameError');
+
+            if (!username) {
+                error.textContent = 'Veuillez entrer votre pseudo Discord';
+                return;
+            }
+
+            // Simple regex for Discord username format
+            const discordUsernameRegex = /^[a-zA-Z0-9_]{2,32}$/;
+            if (!discordUsernameRegex.test(username)) {
+                error.textContent = 'Format de pseudo Discord invalide';
+                return;
+            }
+
+            error.textContent = '';
+            localStorage.setItem('discordUsername', username);
+            showSuggestionForm(username);
+        }
+
+        function showSuggestionForm(username) {
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('welcomeMessage').textContent = `Connecté en tant que : ${username}`;
+        }
+
+        function logout() {
+            // Ne pas supprimer l'userId pour garder la même ID
+            localStorage.removeItem('discordUsername');
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('discordUsername').value = '';
+            document.getElementById('suggestion').value = '';
+            document.getElementById('successMessage').textContent = '';
+            document.getElementById('suggestionError').textContent = '';
+        }
+
+        async function submitSuggestion() {
+            const username = localStorage.getItem('discordUsername');
+            const suggestion = document.getElementById('suggestion').value.trim();
+            const userId = generateId(); // Récupère l'ID existante ou en génère une nouvelle
+            const errorElement = document.getElementById('suggestionError');
+            const successElement = document.getElementById('successMessage');
+
+            if (!suggestion) {
+                errorElement.textContent = 'Veuillez entrer une suggestion';
+                return;
+            }
+
+            // Remplacez cette URL par votre Webhook Discord
+            const webhookUrl = 'https://discord.com/api/webhooks/1298747936355909674/wpzxcN8LJwRwG-DImu-rj6LDf9-YOkgdJDMiJoGgyVg7UPB3AVZskShistceZzNKE_7f';
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: null,
+                        embeds: [{
+                            title: '📝 Nouvelle Suggestion',
+                            color: 5793266,
+                            fields: [
+                                {
+                                    name: 'Auteur',
+                                    value: username,
+                                    inline: true
+                                },
+                                {
+                                    name: 'ID',
+                                    value: userId,
+                                    inline: true
+                                },
+                                {
+                                    name: 'Suggestion',
+                                    value: suggestion
+                                }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('suggestion').value = '';
+                    successElement.textContent = 'Suggestion envoyée avec succès !';
+                    errorElement.textContent = '';
+                } else {
+                    throw new Error('Erreur lors de l\'envoi');
+                }
+            } catch (error) {
+                errorElement.textContent = 'Erreur lors de l\'envoi de la suggestion. Veuillez réessayer.';
+                console.error('Erreur:', error);
+            }
+        }
+    </script>
+</body>
+</html>
